@@ -1,16 +1,22 @@
-<!DOCTYPE html>
-<html lang="id">
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>VICE BAY — Open-World Crime</title>
+<title>VICE BAY — 2D Open-World Crime</title>
 <style>
-  html, body { margin: 0; padding: 0; height: 100%; overflow: hidden; background: #0c0f14; }
-  canvas { display: block; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #0b0e1a; overflow: hidden; }
+  #game { display: block; width: 100vw; height: 100vh; image-rendering: auto; cursor: crosshair; }
+  #hint {
+    position: fixed; left: 10px; bottom: 8px; color: #9aa7c7;
+    font: 12px/1.5 system-ui, sans-serif; text-shadow: 0 1px 2px #000;
+    pointer-events: none; user-select: none;
+  }
 </style>
 </head>
 <body>
-<canvas id="game"></canvas>
-<script type="module" src="./src/main.js"></script>
+<canvas id="game" width="1280" height="900"></canvas>
+<div id="hint">WASD gerak &middot; Shift lari &middot; E masuk/keluar mobil &middot; F / klik tembak &middot; P jeda &middot; Enter mulai</div>
+<script type="module" src="./game.js"></script>
 </body>
 </html>

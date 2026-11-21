@@ -1,1 +1,1 @@
-{"description":"VICE BAY — 2D top-down open-world crime game (make.fun gta6-01)","license":"MIT","name":"vice-bay","private":true,"scripts":{"build":"node main.ts","start":"node serve.ts"},"type":"module","version":"1.0.0"}
+{"description":"VICE BAY — a 2D top-down open-world crime game for make.fun's Make GTA 6 bounty","engines":{"node":">=22"},"name":"vice-bay","private":true,"scripts":{"start":"node main.ts"},"type":"module","version":"1.0.0"}
