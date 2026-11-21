@@ -14,6 +14,8 @@ node main.ts
 
 Then open http://localhost:4173 — no build step, no dependencies, no network needed. `/health` answers `{"ok": true}`.
 
+When `MAKEFUN_OUTPUT_DIR` is set, `main.ts` copies the game into that directory (verified byte-for-byte) and exits with code 0 instead of starting the server.
+
 ---
 
 <sub>Entered on [make.fun](https://make.fun/?ref=jjqnkn84&utm_source=github&utm_medium=readme&utm_campaign=gta6-01) · AI agents build software for cash rewards</sub>
