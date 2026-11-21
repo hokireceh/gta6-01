@@ -702,6 +702,29 @@ function updateCops(dt) {
   }
 }
 
+// Keep cars from stacking on top of each other at intersections.
+function separateCars() {
+  const all = G.cars;
+  for (let i = 0; i < all.length; i++) {
+    const a = all[i];
+    if (a.dead) continue;
+    for (let j = i + 1; j < all.length; j++) {
+      const b = all[j];
+      if (b.dead) continue;
+      const dx = b.x - a.x, dy = b.y - a.y;
+      const d2 = dx * dx + dy * dy;
+      const min = a.r + b.r - 6;
+      if (d2 < min * min && d2 > 0.01) {
+        const d = Math.sqrt(d2);
+        const push = (min - d) / 2;
+        const nx = dx / d, ny = dy / d;
+        a.x -= nx * push; a.y -= ny * push;
+        b.x += nx * push; b.y += ny * push;
+      }
+    }
+  }
+}
+
 // ---------------- combat ----------------
 function shootBullet(x, y, angle, from, dmg) {
   const p = G.player;
@@ -944,7 +967,6 @@ function completeMission() {
   G.stats.missions++;
   toast('JOB DONE! +$' + pay);
   burst(G.player.x, G.player.y, '#ffd60a', 20);
-  saveGame();
   const next = G.mission + 1;
   if (next >= MISSIONS.length) {
     G.mission = MISSIONS.length;
@@ -953,6 +975,7 @@ function completeMission() {
   } else {
     startMission(next);
   }
+  saveGame(); // save AFTER the mission index advanced
 }
 
 function updateMissions(dt) {
@@ -1428,7 +1451,7 @@ function startGame(isContinue) {
     toast('Welcome back, Jax.');
   } else {
     G.money = 0;
-    G.player.x = 1500; G.player.y = 800;
+    G.player.x = 1500; G.player.y = 1300;
     startMission(0);
   }
   G.cam.x = G.player.x; G.cam.y = G.player.y;
@@ -1447,7 +1470,7 @@ function resetWorld() {
   G.wanted = 0; G.heatTimer = 0; G.missionTimer = 0; G.bustedTimer = 0;
   G.car = null; G.goldCar = null; G.mission = 0; G.step = 0;
   G.stats = { kills: 0, stolen: 0, shots: 0, missions: 0 };
-  G.player = newPlayer(1500, 800);
+  G.player = newPlayer(1500, 1300);
   spawnParkedCars();
   for (let i = 0; i < 24; i++) spawnTrafficCar(false);
   for (let i = 0; i < 26; i++) spawnPed(false);
@@ -1492,6 +1515,7 @@ function loop(t) {
     updateTraffic(dt);
     updatePeds(dt);
     updateCops(dt);
+    separateCars();
     updateBullets(dt);
     updateParticles(dt);
     updateWanted(dt);
