@@ -1,85 +1,38 @@
-// VICE BAY — entrypoint (node22: main.ts).
-// A tiny dependency-free static server that serves the game offline.
-// Run:  node main.ts            (serves http://localhost:8080)
-//       PORT=3000 node main.ts  (custom port)
+// VICE BAY — gta6-01 entry (Node 22, standard library only).
+// The game is the static game/ folder a desktop browser loads offline
+// (game/index.html plus its ES modules: no libraries, no network requests).
+// This program hands it in: it copies game/ and screenshots/ from beside
+// this file to /output and writes /output/dossier.json, the summary the
+// judge reads, using the vendored make.fun library.
+//
+// Serve it locally with `node serve.ts`, then open http://localhost:8080.
+// Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
+//   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import http from 'node:http';
-import { readFile } from 'node:fs/promises';
-import { createReadStream, existsSync } from 'node:fs';
-import { extname, join, normalize, resolve, dirname } from 'node:path';
+import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { buildDossier } from './vendor/makefun-game.ts';
 
-const ROOT = resolve(dirname(fileURLToPath(import.meta.url)));
+const here = fileURLToPath(new URL('.', import.meta.url));
+const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-const MIME: Record<string, string> = {
-  '.html': 'text/html; charset=utf-8',
-  '.js': 'text/javascript; charset=utf-8',
-  '.mjs': 'text/javascript; charset=utf-8',
-  '.css': 'text/css; charset=utf-8',
-  '.json': 'application/json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.svg': 'image/svg+xml',
-  '.ico': 'image/x-icon',
-  '.txt': 'text/plain; charset=utf-8',
-  '.md': 'text/markdown; charset=utf-8',
-};
+mkdirSync(out, { recursive: true });
+cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
+mkdirSync(join(out, 'screenshots'), { recursive: true });
+if (existsSync(join(here, 'screenshots'))) cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
 
-function parsePort(argv: string[]): number {
-  const fromEnv = Number(process.env.PORT);
-  if (Number.isFinite(fromEnv) && fromEnv > 0) return fromEnv;
-  const flag = argv.indexOf('--port');
-  if (flag >= 0) {
-    const n = Number(argv[flag + 1]);
-    if (Number.isFinite(n) && n > 0) return n;
-  }
-  return 8080;
-}
-
-const PORT = parsePort(process.argv.slice(2));
-
-const server = http.createServer(async (req, res) => {
-  try {
-    const url = new URL(req.url ?? '/', 'http://localhost');
-    if (url.pathname === '/health') {
-      res.writeHead(200, { 'content-type': 'application/json' });
-      res.end(JSON.stringify({ ok: true, game: 'vice-bay', version: '1.0.0' }));
-      return;
-    }
-    let rel = decodeURIComponent(url.pathname);
-    if (rel === '/') rel = '/index.html';
-    const safe = normalize(join(ROOT, rel)).replace(/\\/g, '/');
-    const rootNorm = ROOT.replace(/\\/g, '/');
-    if (!safe.startsWith(rootNorm) || !existsSync(safe)) {
-      res.writeHead(404, { 'content-type': 'text/plain' });
-      res.end('Not found');
-      return;
-    }
-    const ext = extname(safe).toLowerCase();
-    res.writeHead(200, {
-      'content-type': MIME[ext] ?? 'application/octet-stream',
-      'cache-control': 'no-store',
-    });
-    createReadStream(safe).pipe(res);
-  } catch (err) {
-    res.writeHead(500, { 'content-type': 'text/plain' });
-    res.end('Server error');
-  }
-});
-
-server.listen(PORT, () => {
-  console.log(`VICE BAY running at http://localhost:${PORT}`);
-  console.log('Open it in your desktop browser. Press Ctrl+C to stop.');
-});
-
-process.on('SIGINT', () => {
-  server.close(() => process.exit(0));
-});
-process.on('SIGTERM', () => {
-  server.close(() => process.exit(0));
-});
-
-// Keep the module importable without side effects in tests.
-export { parsePort };
+// The scorer's own caps (reference/gate.json): text_max_bytes shapes the
+// bytes; the other caps refuse an entry the scorer would refuse (more than
+// 4 screenshots or one over 256 KiB; more than 993 files in game/ or 48 MiB
+// of game files in all, or a path under game/ over 1000 bytes).
+writeFileSync(
+  join(out, 'dossier.json'),
+  buildDossier(out, {
+    text_max_bytes: 163840,
+    screenshots: { max: 4, max_bytes: 262144 },
+    game_max_files: 993,
+    game_max_bytes: 50331648,
+    game_path_max_bytes: 1000,
+  }),
+);
