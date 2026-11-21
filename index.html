@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>VICE BAY — Open City Crime</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="wrap">
+  <canvas id="game" width="1280" height="720"></canvas>
+
+  <div id="hud" class="hidden">
+    <div id="topleft">
+      <div id="healthbar"><div id="healthfill"></div><span id="healthtext">100</span></div>
+      <div id="money">$<span id="moneytext">0</span></div>
+      <div id="wanted"></div>
+    </div>
+    <div id="objective">
+      <div id="missiontitle">MISSION 1 — RODA PERTAMA</div>
+      <div id="missiontext">Steal a car and drive to the garage.</div>
+      <div id="missiondist"></div>
+    </div>
+    <canvas id="minimap" width="220" height="160"></canvas>
+    <div id="speedo" class="hidden"><span id="speedtext">0</span> km/h</div>
+    <div id="toast"></div>
+    <div id="hint">WASD move &middot; E enter car &middot; Click shoot &middot; P pause</div>
+  </div>
+
+  <div id="start" class="overlay">
+    <div class="panel">
+      <h1>VICE <span>BAY</span></h1>
+      <p class="tagline">Steal. Drive. Outrun. Rule the Bay.</p>
+      <p class="story">Jax Marlowe just got out with nothing but a burner phone and a
+      name to make. Five jobs stand between him and the crown of Vice Bay —
+      if the cops don't get him first.</p>
+      <div class="buttons">
+        <button id="btn-new">NEW GAME</button>
+        <button id="btn-continue" class="hidden">CONTINUE</button>
+      </div>
+      <div class="controls">
+        <div><b>W A S D</b> move / drive</div>
+        <div><b>Shift</b> sprint</div>
+        <div><b>E</b> enter &amp; exit car / pick up</div>
+        <div><b>Mouse + Click / F</b> shoot</div>
+        <div><b>P / Esc</b> pause &nbsp;·&nbsp; <b>M</b> minimap zoom</div>
+      </div>
+      <p class="fine">Fully offline. No downloads. Save lives in your browser.</p>
+    </div>
+  </div>
+
+  <div id="pause" class="overlay hidden">
+    <div class="panel">
+      <h2>PAUSED</h2>
+      <div class="buttons">
+        <button id="btn-resume">RESUME</button>
+        <button id="btn-restart">RESTART RUN</button>
+        <button id="btn-quit">QUIT TO MENU</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="busted" class="overlay hidden">
+    <div class="panel">
+      <h2>BUSTED</h2>
+      <p class="story">The Vice Bay PD caught up with you. Bail cost you <b id="bailtext">$500</b>.</p>
+      <div class="buttons"><button id="btn-busted">BACK ON THE STREETS</button></div>
+    </div>
+  </div>
+
+  <div id="wasted" class="overlay hidden">
+    <div class="panel">
+      <h2>WASTED</h2>
+      <p class="story">You flatlined in Vice Bay. The hospital patched you up — for a price.</p>
+      <div class="buttons"><button id="btn-wasted">WAKE UP</button></div>
+    </div>
+  </div>
+
+  <div id="win" class="overlay hidden">
+    <div class="panel">
+      <h2>KING OF THE BAY</h2>
+      <p class="story">Five jobs. One crown. Vice Bay is yours now, Jax.</p>
+      <p class="stats" id="winstats"></p>
+      <div class="buttons">
+        <button id="btn-freeroam">FREE ROAM</button>
+        <button id="btn-again">PLAY AGAIN</button>
+      </div>
+    </div>
+  </div>
+</div>
+<script src="game.js"></script>
+</body>
+</html>
