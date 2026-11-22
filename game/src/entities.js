@@ -1,32 +1,40 @@
-// VICE BAY — entity factories. Every car, pedestrian, bullet, particle and
-// pickup in the game is built by one of these, so the rest of the code never
-// assembles an entity by hand. Field names that the automated checks read
-// (parked, dead, police, driver, gold, health, taken, kind, down, speed)
-// are kept exactly; the internal bookkeeping fields got new names.
+// VICE BAY — the factories that build every actor: the player, the cars,
+// the pedestrians, the bullets, the sparks and the pickups. Plain objects
+// with fixed field names — the AI, combat and render modules all read
+// these exact names, so a rename here breaks the whole game.
 
 import { PALETTE, TUNING } from "./config.js";
 
 export function makePlayer() {
   return {
-    x: 675, y: 675, angle: 0, speed: 0,
-    inCar: null, onFoot: true, shootCd: 0,
+    x: 675,
+    y: 675,
+    angle: 0,
+    speed: 0,
+    inCar: null,
+    onFoot: true,
+    shootCd: 0,
   };
 }
 
 export function makeCar(x, y, angle, opts, random) {
-  const police = !!opts.police;
+  const options = opts ?? {};
   return {
-    x, y, angle,
+    x,
+    y,
+    angle,
     speed: 0,
-    color: opts.color || random.pick(PALETTE.traffic),
-    police,
-    gold: !!opts.gold,
-    driver: opts.driver !== false,
-    parked: !!opts.parked,
-    health: police ? 60 : 100,
-    road: opts.road || null,
-    lane: opts.lane || 0,
-    dir: opts.dir || 1,
+    color: options.color ?? random.pick(PALETTE.traffic),
+    police: !!options.police,
+    gold: !!options.gold,
+    // A car has a driver unless the caller says otherwise; a driverless
+    // car is parked or abandoned, and stealing a driven one raises wanted.
+    driver: options.driver !== false,
+    parked: !!options.parked,
+    health: options.police ? 60 : 100,
+    road: options.road ?? null,
+    lane: options.lane ?? 0,
+    dir: options.dir ?? 1,
     turnTimer: random.range(1, 4),
     gunTimer: random.range(0.5, 1.5),
     dead: false,
@@ -39,7 +47,8 @@ export function makeCar(x, y, angle, opts, random) {
 
 export function makePed(x, y, random) {
   return {
-    x, y,
+    x,
+    y,
     angle: random.range(0, Math.PI * 2),
     speed: random.range(TUNING.pedWalkMin, TUNING.pedWalkMax),
     color: random.pick(PALETTE.ped),
@@ -50,6 +59,8 @@ export function makePed(x, y, random) {
   };
 }
 
+// A pedestrian who just watched their car get stolen: same shape as a
+// normal walker, but already running, starting a few steps off the spot.
 export function makeFleeingPed(x, y, random) {
   const ped = makePed(x + random.range(-30, 30), y + random.range(-30, 30), random);
   ped.speed = 120;

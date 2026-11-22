@@ -7,6 +7,7 @@ import { VIEW_W, VIEW_H, ZOOM, TUNING } from "./config.js";
 import { clamp, distance, angleTo, segmentHitsCircle } from "./math.js";
 import { makeBullet, makeParticle, makePickup, makeCar } from "./entities.js";
 
+// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
 export function flash(g, text) {
   g.message = text;
   g.messageT = 2.5;

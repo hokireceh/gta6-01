@@ -77,6 +77,7 @@ export class City {
   }
 }
 
+// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
 // Fill a fresh state with the starting population.
 export function populate(state, city, random) {
   state.cars = [];

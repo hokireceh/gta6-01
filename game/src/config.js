@@ -1,8 +1,6 @@
-// VICE BAY — every tunable number in one place: the city grid, the palette,
-// the fixed landmarks, the driving/combat tuning and the mission script.
-// Landmark coordinates and mission rewards are part of the game's contract
-// (the automated checks drive to these exact spots), so they stay put while
-// everything around them was rewritten.
+// VICE BAY — every number and name the game runs on. This is the contract:
+// the world layout, the palette, the tuning and the mission chain all live
+// here, so the other modules read the same values and nothing drifts.
 
 export const WORLD_SIZE = 3600;
 export const ROAD_COUNT = 8;
@@ -16,8 +14,8 @@ export const SAVE_KEY = "vicebay-save-v1";
 export const CITY_SEED = 20261121;
 export const SKYLINE_SEED = 7;
 
-// Fixed points of interest (world coordinates). Never move these: the
-// mission chain drives the player to each of them in turn.
+// Fixed spots on the map. The coordinates never move: missions, the save
+// point and the gold car all point at these exact places.
 export const LANDMARKS = {
   shop: { x: 1575, y: 675, r: 90, label: "TOKO" },
   delivery: { x: 2925, y: 675, r: 90, label: "PAKET" },
@@ -42,7 +40,8 @@ export const PALETTE = {
   traffic: ["#d05555", "#5580d0", "#d0aa55", "#8055d0", "#55d095", "#d0d0d0", "#949aa8"],
 };
 
-// Driving, combat and wanted tuning.
+// Every feel number of the game: how fast you run, drive and get chased,
+// how hard the guns hit, and how long each timed beat lasts.
 export const TUNING = {
   walkSpeed: 175,
   sprintSpeed: 300,
@@ -65,11 +64,11 @@ export const TUNING = {
   policeSteer: 2.8,
   policeSpawnDistance: 700,
   policeShootRange: 520,
-  policeRamDamage: 4, // round 4: 4/s (was 12) — road-following police now sustain contact, so the old rate ground a car to death in ~3s; 4/s keeps rams dangerous without an instant explosion
+  policeRamDamage: 4,
   playerBulletSpeed: 950,
   playerBulletLife: 0.8,
   policeBulletSpeed: 780,
-  policeBulletLife: 1.2, // round 4: 1.2s (was 0.9) so police fire stays visible mid-flight
+  policeBulletLife: 1.2,
   shootCooldown: 0.28,
   bulletDamage: 25,
   policeBulletDamage: 10,
@@ -87,12 +86,12 @@ export const TUNING = {
   pedDownSeconds: 4,
 };
 
-// The five chained missions. Rewards are fixed ($150 / $300 / $500 / $900 /
-// $1500 = $3,250 total); the wording was rewritten for this rebuild.
+// Five jobs in a row, $3,250 in total. The text is what the HUD shows
+// while a mission runs; the completion rules live in missions.js.
 export const MISSION_DEFS = [
   {
     title: "Misi 1 — Cari Roda",
-    text: "Bajak atau ambil mobil apa pun (tekan E saat dekat mobil).",
+    text: "Bajak mobil apa pun di jalan — dekati mobil lalu tekan E.",
     reward: 150,
   },
   {
@@ -102,17 +101,17 @@ export const MISSION_DEFS = [
   },
   {
     title: "Misi 3 — Rampok Toko",
-    text: "Masuk ke toko, tahan 3 detik sampai rampok selesai, lalu kabur sampai wanted hilang.",
+    text: "Masuk toko dan tahan 3 detik sampai rampok selesai, lalu kabur sampai wanted hilang.",
     reward: 500,
   },
   {
     title: "Misi 4 — Pelarian 90 Detik",
-    text: "Bertahan 90 detik di wanted 3. Jangan ketangkap!",
+    text: "Bertahan 90 detik di wanted 3 — jangan sampai ketangkap polisi.",
     reward: 900,
   },
   {
     title: "Misi 5 — Mobil Emas",
-    text: "Curi mobil emas di timur, bawa ke penthouse.",
+    text: "Curi mobil emas di timur kota dan bawa ke penthouse.",
     reward: 1500,
   },
 ];

@@ -8,6 +8,7 @@ import { clamp, distance, angleTo, steerToward } from "./math.js";
 import { makeCar, makeBullet } from "./entities.js";
 import { flash } from "./combat.js";
 
+// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
 export function stepTraffic(g, city, random, dt) {
   for (const car of g.cars) {
     if (car.dead || car.police) continue;

@@ -29,6 +29,7 @@ function ridingGold(g) {
   return !!(g.player.inCar && g.player.inCar.gold);
 }
 
+// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
 export const MISSIONS = MISSION_DEFS.map((def, index) => {
   const checks = [
     (g) => !!g.player.inCar,

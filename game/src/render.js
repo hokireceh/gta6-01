@@ -9,6 +9,7 @@ import { clamp, distance } from "./math.js";
 import { SeededRandom } from "./random.js";
 import { MISSIONS, loadGame } from "./missions.js";
 
+// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
 function disc(ctx, x, y, r) {
   ctx.beginPath();
   ctx.arc(x, y, r, 0, Math.PI * 2);

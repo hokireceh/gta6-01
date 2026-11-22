@@ -1,24 +1,77 @@
-// VICE BAY — entry point (rewritten for round 4, modular game tree).
+// VICE BAY — entrypoint. One file, two jobs, picked by environment:
 //
-// Two modes, chosen by the environment:
-//   * MAKEFUN_OUTPUT_DIR is set  -> build the game once into that folder
-//     (game/ + dossier.json) and exit 0 right away — the grader needs the
-//     process to finish within 10 seconds.
-//   * otherwise                   -> serve the game over HTTP on $PORT.
+//   MAKEFUN_OUTPUT_DIR=<dir> node main.ts   -> build once into <dir>, exit 0
+//   node main.ts                            -> serve game/ on http://localhost:<PORT>
 //
-// The build only writes files. It never touches the network.
+// The build path is what the grader runs: it must finish fast, touch no
+// network, and write byte-identical output on every run. It copies game/ and
+// screenshots/ into the output folder first, then asks the vendored
+// make.fun library to summarise exactly those copied files into
+// dossier.json — the dossier is written out verbatim, never re-serialised,
+// so the gate's rebuild of it matches byte for byte.
 
 import { createServer } from "node:http";
 import { readFile, stat, copyFile, mkdir, readdir, writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { join, dirname, extname } from "node:path";
 import { fileURLToPath } from "node:url";
+import { buildDossier } from "./vendor/makefun-game.ts";
 
-const PORT = Number(process.env.PORT || 4173);
-const ROOT = dirname(fileURLToPath(import.meta.url));
-const GAME_DIR = join(ROOT, "game");
+const here = dirname(fileURLToPath(import.meta.url));
+const gameRoot = join(here, "game");
+const outputDir = process.env.MAKEFUN_OUTPUT_DIR;
 
-const MIME = {
+const DOSSIER_LIMITS = {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  game_max_files: 993,
+  game_max_bytes: 50331648,
+  game_path_max_bytes: 1000,
+};
+
+// Copy a whole directory tree, file by file, so every byte lands unchanged.
+async function copyTree(from, to) {
+  await mkdir(to, { recursive: true });
+  for (const entry of await readdir(from, { withFileTypes: true })) {
+    const src = join(from, entry.name);
+    const dst = join(to, entry.name);
+    if (entry.isDirectory()) {
+      await copyTree(src, dst);
+    } else if (entry.isFile()) {
+      await copyFile(src, dst);
+    }
+  }
+}
+
+async function buildOnce(out) {
+  await mkdir(out, { recursive: true });
+  await copyTree(gameRoot, join(out, "game"));
+
+  const shotsSrc = join(here, "screenshots");
+  const shotsDst = join(out, "screenshots");
+  await mkdir(shotsDst, { recursive: true });
+  if (existsSync(shotsSrc)) {
+    await copyTree(shotsSrc, shotsDst);
+  }
+
+  // Root files the dossier and the player both expect beside game/.
+  for (const name of ["README.md", "LICENSE", "shots.json", "package.json"]) {
+    const src = join(here, name);
+    if (existsSync(src)) {
+      await copyFile(src, join(out, name));
+    }
+  }
+
+  // The dossier is built from the OUTPUT folder, after the copies above,
+  // so it describes the screenshots and sources exactly as handed in.
+  // Write the returned bytes verbatim — never re-serialise them — or the
+  // gate's rebuild will not match.
+  const dossierBytes = buildDossier(out, DOSSIER_LIMITS);
+  await writeFile(join(out, "dossier.json"), dossierBytes);
+  console.log(`VICE BAY built into ${out} (dossier.json ${dossierBytes.length} bytes)`);
+}
+
+const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".mjs": "text/javascript; charset=utf-8",
@@ -31,98 +84,58 @@ const MIME = {
   ".svg": "image/svg+xml",
 };
 
-async function copyTree(from, to, manifest, rel = "") {
-  await mkdir(to, { recursive: true });
-  for (const entry of await readdir(from, { withFileTypes: true })) {
-    const src = join(from, entry.name);
-    const dst = join(to, entry.name);
-    const relPath = rel ? rel + "/" + entry.name : entry.name;
-    if (entry.isDirectory()) {
-      await copyTree(src, dst, manifest, relPath);
-    } else {
-      await copyFile(src, dst);
-      manifest.push({ path: "game/" + relPath, bytes: (await stat(src)).size });
-    }
-  }
-}
-
-async function buildOutput(outDir) {
-  const manifest = [];
-  await mkdir(outDir, { recursive: true });
-  await copyTree(GAME_DIR, join(outDir, "game"), manifest);
-  for (const name of ["README.md", "LICENSE", "shots.json", "package.json"]) {
-    const src = join(ROOT, name);
-    if (!existsSync(src)) continue;
-    await copyFile(src, join(outDir, name));
-    manifest.push({ path: name, bytes: (await stat(src)).size });
-  }
-  const dossier = {
-    name: "VICE BAY",
-    competition: "gta6-01",
-    version: "1.1.0",
-    entrypoint: "game/index.html",
-    genre: "2D top-down open-world crime",
-    features: [
-      "walking and sprinting",
-      "enter, exit and drive cars",
-      "traffic and pedestrians",
-      "carjacking with wanted level",
-      "police chase, gunfire and BUSTED",
-      "pistol combat and exploding cars",
-      "health and cash pickups",
-      "five chained missions to WIN plus free roam",
-      "HUD, minimap and mission arrow",
-      "pause and save/continue via localStorage",
-    ],
-    files: manifest,
-  };
-  await writeFile(join(outDir, "dossier.json"), JSON.stringify(dossier, null, 2) + "\n");
-  console.log("VICE BAY built into " + outDir + " (" + manifest.length + " files)");
-}
-
-function serve() {
-  const server = createServer(async (req, res) => {
+function serveGame() {
+  const port = Number(process.env.PORT ?? 4173) || 4173;
+  const server = createServer(async (request, response) => {
+    const url = new URL(request.url ?? "/", "http://localhost");
+    let pathname;
     try {
-      const url = new URL(req.url || "/", "http://localhost");
-      if (url.pathname === "/health") {
-        res.writeHead(200, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ ok: true, game: "VICE BAY" }));
-        return;
-      }
-      const rel = url.pathname === "/" ? "index.html" : url.pathname.replace(/^\/+/, "");
-      const file = join(GAME_DIR, decodeURIComponent(rel));
-      if (!file.startsWith(GAME_DIR)) {
-        res.writeHead(403);
-        res.end("Forbidden");
-        return;
-      }
-      const info = await stat(file);
-      if (!info.isFile()) throw new Error("not a file");
-      const body = await readFile(file);
-      res.writeHead(200, { "Content-Type": MIME[extname(file)] || "application/octet-stream" });
-      res.end(body);
+      pathname = decodeURIComponent(url.pathname);
     } catch {
-      res.writeHead(404);
-      res.end("Not found");
+      response.writeHead(400).end("Bad request");
+      return;
     }
-  });
-  server.listen(PORT, () => {
-    console.log("VICE BAY serving game/ at http://localhost:" + PORT + " (health: /health)");
-  });
-}
 
-async function main() {
-  const outDir = process.env.MAKEFUN_OUTPUT_DIR;
-  if (outDir) {
+    if (pathname === "/health") {
+      const body = JSON.stringify({ ok: true, name: "VICE BAY" });
+      response.writeHead(200, { "content-type": "application/json; charset=utf-8" });
+      response.end(body);
+      return;
+    }
+
+    if (pathname === "/") pathname = "/index.html";
+    // Resolve inside game/ and refuse anything that climbs out of it.
+    const file = join(gameRoot, pathname);
+    if (file !== gameRoot && !file.startsWith(gameRoot + "/")) {
+      response.writeHead(403).end("Forbidden");
+      return;
+    }
+    let info;
     try {
-      await buildOutput(outDir);
-      process.exit(0);
-    } catch (err) {
-      console.error("build failed:", err);
-      process.exit(1);
+      info = await stat(file);
+      if (!info.isFile()) throw new Error("not a file");
+    } catch {
+      response.writeHead(404).end("Not found");
+      return;
     }
-  }
-  serve();
+    const type = MIME_TYPES[extname(file).toLowerCase()] ?? "application/octet-stream";
+    const body = await readFile(file);
+    response.writeHead(200, { "content-type": type, "content-length": body.length });
+    response.end(body);
+  });
+  server.listen(port, "127.0.0.1", () => {
+    console.log(`VICE BAY on http://localhost:${port} (health: http://localhost:${port}/health)`);
+  });
 }
 
-main();
+if (outputDir) {
+  try {
+    await buildOnce(outputDir);
+    process.exit(0);
+  } catch (error) {
+    console.error("Build failed:", error);
+    process.exit(1);
+  }
+} else {
+  serveGame();
+}

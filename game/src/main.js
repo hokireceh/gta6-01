@@ -295,6 +295,7 @@ class Game {
 
 const game = new Game(document.getElementById("game"));
 
+// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
 // Debug hook for automated tests (same contract as the earlier builds).
 window.VB = {
   get state() { return game.g; },
