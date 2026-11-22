@@ -2,53 +2,79 @@
 [![rank](https://make.fun/badge/gta6-01/hokireceh/gta6-01/rank.svg)](https://make.fun/bounty/gta6-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 [![reward](https://make.fun/badge/gta6-01/hokireceh/gta6-01/reward.svg)](https://make.fun/bounty/gta6-01?utm_source=github&utm_medium=readme&utm_campaign=gta6-01)
 
-# VICE BAY
+# Vice Bay
 
-[![Bounty: Make GTA 6](https://img.shields.io/badge/bounty-Make%20GTA%206-ff6fb1)](https://make.fun/bounty/gta6-01)
-[![Leaderboard](https://img.shields.io/badge/leaderboard-gta6--01-ffd23d)](https://make.fun/bounty/gta6-01)
-[![Reward $1,666](https://img.shields.io/badge/reward-%241%2C666-37d67a)](https://make.fun/bounty/gta6-01)
+An original 2D top-down open-world crime game set in the fictional city of Vice Bay, Leonida — built for the make.fun **gta6-01** bounty. You arrive in town with one bag, one pistol, and a debt. Work three jobs for your boss Marisol — deliver packages, chase down a courier, then escape a city-wide raid — and the city is yours.
 
-VICE BAY is a 2D top-down open-world crime game that runs fully offline in a desktop browser. No install, no account, no network — just open it and play.
+No Rockstar content: every name, character, street and story beat here is invented for this game.
 
-## The city
+## Play it
 
-A road-grid city packed with traffic, pedestrians, parks and landmarks. Walk the streets on foot, hijack any car you find, outrun the police, rob the shop, survive 90 seconds at wanted level 3, and steal the gold car to the penthouse — five chained missions worth $3,250 in total, then free roam for as long as you like.
-
-## How it is built
-
-The game lives under `game/src/` as small modules with one job each:
-
-- `world.js` — the city grid, blocks, and the starting population
-- `entities.js` — factories for the player, cars, pedestrians, bullets and pickups
-- `input.js` — keyboard and mouse tracking
-- `ai.js` — traffic, pedestrian and police behaviour
-- `combat.js` — shooting, explosions and particles
-- `missions.js` — the five-mission chain and the save system
-- `render.js` — the city, the HUD, the minimap and the menus
-- `main.js` — the orchestrator: state, frame loop and the debug hook
-
-No dependencies, no build step, no network requests. `main.ts` at the repository root is the entrypoint: it copies `game/` and `screenshots/` into an output folder and writes `dossier.json` with the vendored make.fun library.
-
-## Play
+Serve `game/` with any static server and open `game/index.html` in desktop Chrome:
 
 ```sh
-node main.ts
+node scripts/serve.mjs   # http://localhost:8080/
 ```
 
-Then open http://localhost:4173 — `/health` answers `{"ok": true, "name": "VICE BAY"}`.
+Or build the submission bundle (copies `game/` + `screenshots/` and writes `dossier.json`):
 
-If `MAKEFUN_OUTPUT_DIR` is set, `main.ts` copies the game into that folder instead and exits with code 0 without starting a server.
+```sh
+npm run build            # writes out/
+npm test                 # smoke test: builds twice, checks identical bytes
+```
 
 ## Controls
 
-- **WASD / arrows** — walk or drive
-- **Shift** — sprint on foot
-- **E** — get in / out of a car
-- **F** or **mouse click** — shoot
-- **P / Esc** — pause
+| Input | Action |
+| --- | --- |
+| WASD / Arrow keys | Walk and drive |
+| Shift | Sprint on foot |
+| E | Enter / exit a car (stealing a driven car raises your wanted level) |
+| Mouse click | Shoot the pistol (on foot) |
+| R | Reload |
+| P / Esc | Pause |
+| M | Mute sound |
 
-Progress saves automatically to `localStorage`, so you can continue your mission chain later.
+## The game
+
+- **A living city** — a seeded street grid with avenues, intersections, a park, a beach and the bay; traffic cars cruise the roads and pedestrians stroll the sidewalks (and flee when you drive at them).
+- **Cars to steal and drive** — parked cars are free; taking a car with a driver inside earns you a wanted star. Arcade handling with acceleration, braking, reversing and steering.
+- **Wanted level & police** — 0–5 stars. Crimes (theft, hitting pedestrians, shooting cops) raise it; VCPD cars chase and ram you, foot cops chase, shoot, and try to bust you. Lose the cops' line of sight and the heat cools down.
+- **Missions & story** — three jobs with a HUD objective, a pulsing beacon, an edge-of-screen arrow and a minimap marker: (1) *Pesanan Pertama* — collect three packages and deliver them to the depot; (2) *Kejar Kurir* — run a courier down and take his bag; (3) *Kabur dari Razia* — escape a three-star raid to the hideout.
+- **Combat** — pistol with mouse aim, reload, cop return fire, health and ammo pickups around town.
+- **Progression & save** — cash rewards per job, a win screen with run stats, and progress (cash + mission) saved in `localStorage` so you can continue later.
+- **Feel & polish** — camera follow with screen shake, dust and spark particles, muzzle flashes, a day-lit palette, synthesized engine/siren/gunshot audio (WebAudio, no files), and a full HUD: cash, health, ammo, wanted stars, objective banner, speedometer and minimap.
+
+## Structure
+
+The game is plain static files under `game/` — no build step, no network requests, no vendored libraries:
+
+| File | Job |
+| --- | --- |
+| `game/index.html` | The page: canvas + module entry |
+| `game/src/main.js` | Game state, loop, driving, crime, police, save |
+| `game/src/config.js` | Tuning, palette, key bindings |
+| `game/src/math.js` | Pure math helpers |
+| `game/src/random.js` | Seeded RNG (the city is deterministic) |
+| `game/src/input.js` | Keyboard + mouse, with edge detection |
+| `game/src/entities.js` | Entity factories and car kinematics |
+| `game/src/world.js` | City generation, roads, collisions |
+| `game/src/ai.js` | Traffic, pedestrians, police pursuit |
+| `game/src/combat.js` | Shooting, bullets, wanted consequences |
+| `game/src/missions.js` | The three-job story state machine |
+| `game/src/render.js` | City, cars, people, HUD, minimap, menus |
+| `game/src/shots.js` | Staged scenes (`?shot=menu|drive|chase|win`) for screenshots |
+
+`main.ts` at the repository root is the make.fun entrypoint: it copies `game/` and `screenshots/` to the output directory and writes `dossier.json` with `buildDossier` from `vendor/makefun-game.ts`. `scripts/smoke.mjs` verifies the build is deterministic; `scripts/serve.mjs` is the local static server.
+
+## Screenshots
+
+`01-menu.jpg` (title screen), `02-drive.jpg` (driving with HUD + minimap), `03-chase.jpg` (three-star police chase), `04-win.jpg` (win screen) — all real renders of this game in Chromium, captured with Playwright while driving the `?shot=` scenes. See `shots.json` for the scene list.
+
+## License
+
+MIT — see [LICENSE](LICENSE).
 
 ---
 
-Built for the [Make GTA 6 bounty on make.fun](https://make.fun/bounty/gta6-01?ref=jjqnkn84&utm_source=github&utm_medium=readme&utm_campaign=gta6-01) — try make.fun and build your own.
+Built for [make.fun — GTA 6 bounty gta6-01](https://make.fun/bounty/gta6-01?ref=jjqnkn84)

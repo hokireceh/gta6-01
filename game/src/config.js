@@ -1,117 +1,108 @@
-// VICE BAY — every number and name the game runs on. This is the contract:
-// the world layout, the palette, the tuning and the mission chain all live
-// here, so the other modules read the same values and nothing drifts.
+// Vice Bay — tuning, palette and key bindings.
+// One job: every number the rest of the game reads, in one place.
 
-export const WORLD_SIZE = 3600;
-export const ROAD_COUNT = 8;
-export const ROAD_SPACING = 450;
-export const ROAD_WIDTH = 96;
-export const FIRST_ROAD = 225;
 export const VIEW_W = 1280;
-export const VIEW_H = 900;
-export const ZOOM = 0.9;
-export const SAVE_KEY = "vicebay-save-v1";
-export const CITY_SEED = 20261121;
-export const SKYLINE_SEED = 7;
+export const VIEW_H = 720;
 
-// Fixed spots on the map. The coordinates never move: missions, the save
-// point and the gold car all point at these exact places.
-export const LANDMARKS = {
-  shop: { x: 1575, y: 675, r: 90, label: "TOKO" },
-  delivery: { x: 2925, y: 675, r: 90, label: "PAKET" },
-  penthouse: { x: 2925, y: 2925, r: 100, label: "PENTHOUSE" },
-  hospital: { x: 675, y: 2925, r: 90, label: "RUMAH SAKIT" },
-  goldCarSpot: { x: 3150, y: 2025 },
-};
+export const WORLD_W = 3600;
+export const WORLD_H = 2600;
+
+// The bay eats the south-east corner of the map; the beach runs along it.
+export const BAY_X = 2960;
+export const BAY_Y = 1960;
+
+export const SAVE_KEY = 'vicebay-save-v1';
 
 export const PALETTE = {
-  ground: "#10141f",
-  block: "#1a2133",
-  sidewalk: "#2a3350",
-  road: "#20283d",
-  dash: "#7e8aa8",
-  park: "#14301c",
-  building: ["#46587e", "#5a4a7e", "#7e5a4a", "#3a6b57", "#6b3a57", "#525f82"],
-  hero: "#ff6fb1",
-  heroCar: "#ff3d9a",
-  gold: "#ffd23d",
-  policeCar: "#f0f0f0",
-  ped: ["#e8c15a", "#5ad1e8", "#e85a7a", "#7ae85a", "#c98af0", "#e8e8e8"],
-  traffic: ["#d05555", "#5580d0", "#d0aa55", "#8055d0", "#55d095", "#d0d0d0", "#949aa8"],
+  grass: '#5d9b4a',
+  grassDark: '#4c8440',
+  sand: '#e3cd8d',
+  water: '#2a7fa8',
+  waterDeep: '#1d5f86',
+  road: '#3a3a40',
+  roadLine: '#e8d44d',
+  sidewalk: '#9a9a92',
+  buildingRoof: '#b0563a',
+  buildingRoof2: '#7d8aa0',
+  buildingRoof3: '#c2a15a',
+  buildingWall: '#8a6f5c',
+  park: '#3f7d33',
+  tree: '#2e6b26',
+  treeLight: '#4c9a3d',
+  player: '#ffcf3f',
+  police: '#2b4fd8',
+  policeLight: '#ff3b30',
+  pedShirt: '#e86a92',
+  hud: '#101418',
+  hudAccent: '#ffd23f',
+  danger: '#ff453a',
+  ok: '#34c759',
+  marker: '#ffd23f',
 };
 
-// Every feel number of the game: how fast you run, drive and get chased,
-// how hard the guns hit, and how long each timed beat lasts.
 export const TUNING = {
-  walkSpeed: 175,
-  sprintSpeed: 300,
-  carTopSpeed: 520,
-  carReverseSpeed: -160,
-  carAccel: 420,
-  carBrake: 380,
-  carDrag: 240,
-  carSteer: 2.1,
-  carSteerSpeed: 220,
-  trafficSpeedMin: 60,
-  trafficSpeedMax: 110,
-  trafficSteer: 2.4,
-  pedWalkMin: 25,
-  pedWalkMax: 45,
-  pedFleeSpeed: 130,
-  pedFleeRadius: 160,
-  policeTopSpeed: 430,
-  policeAccel: 260,
-  policeSteer: 2.8,
-  policeSpawnDistance: 700,
-  policeShootRange: 520,
-  policeRamDamage: 4,
-  playerBulletSpeed: 950,
-  playerBulletLife: 0.8,
-  policeBulletSpeed: 780,
-  policeBulletLife: 1.2,
-  shootCooldown: 0.28,
-  bulletDamage: 25,
-  policeBulletDamage: 10,
-  carBulletDamage: 8,
-  wantedDecaySeconds: 8,
-  wantedDecayRadius: 650,
-  bustedFine: 100,
-  robberySeconds: 3,
-  getawaySeconds: 90,
-  explosionRadius: 130,
-  explosionCarDamage: 50,
-  carWreckLifetime: 0.6,
-  healthPickupAmount: 40,
-  cashPickupAmount: 50,
-  pedDownSeconds: 4,
+  // On foot.
+  walkSpeed: 185,
+  sprintSpeed: 285,
+  playerRadius: 15,
+  playerHealth: 100,
+  // Driving.
+  carAccel: 520,
+  carBrake: 900,
+  carMaxSpeed: 460,
+  carReverseMax: 150,
+  carTurn: 2.6,
+  carRadius: 20,
+  // Police.
+  copCarSpeed: 430,
+  copFootSpeed: 205,
+  copRamDamage: 6,
+  bustHoldSeconds: 1.4,
+  // Wanted.
+  wantedDecaySeconds: 14,
+  wantedMax: 5,
+  // Combat.
+  bulletSpeed: 780,
+  bulletDamage: 34,
+  bulletRange: 620,
+  pistolAmmo: 30,
+  pistolRefireSeconds: 0.22,
+  copShotDamage: 5,
+  copShotInterval: 0.9,
+  // Traffic and crowd.
+  trafficCars: 16,
+  pedestrians: 26,
+  policeCarsMax: 6,
+  // Pickups.
+  healthPackHeal: 40,
+  ammoPackAmmo: 30,
+  cashPickup: 50,
+  // Missions.
+  missionReward: [400, 700, 1200],
+  winCashBonus: 500,
 };
 
-// Five jobs in a row, $3,250 in total. The text is what the HUD shows
-// while a mission runs; the completion rules live in missions.js.
-export const MISSION_DEFS = [
-  {
-    title: "Misi 1 — Cari Roda",
-    text: "Bajak mobil apa pun di jalan — dekati mobil lalu tekan E.",
-    reward: 150,
-  },
-  {
-    title: "Misi 2 — Paket Kilat",
-    text: "Antar paket ke penanda kuning di ujung timur kota.",
-    reward: 300,
-  },
-  {
-    title: "Misi 3 — Rampok Toko",
-    text: "Masuk toko dan tahan 3 detik sampai rampok selesai, lalu kabur sampai wanted hilang.",
-    reward: 500,
-  },
-  {
-    title: "Misi 4 — Pelarian 90 Detik",
-    text: "Bertahan 90 detik di wanted 3 — jangan sampai ketangkap polisi.",
-    reward: 900,
-  },
-  {
-    title: "Misi 5 — Mobil Emas",
-    text: "Curi mobil emas di timur kota dan bawa ke penthouse.",
-    reward: 1500,
-  },
+export const KEYS = {
+  up: ['KeyW', 'ArrowUp'],
+  down: ['KeyS', 'ArrowDown'],
+  left: ['KeyA', 'ArrowLeft'],
+  right: ['KeyD', 'ArrowRight'],
+  sprint: ['ShiftLeft', 'ShiftRight'],
+  interact: ['KeyE'],
+  shoot: ['MouseLeft'],
+  reload: ['KeyR'],
+  pause: ['KeyP', 'Escape'],
+  mute: ['KeyM'],
+  start: ['Enter', 'Space'],
+};
+
+export const MISSION_NAMES = [
+  'Pesanan Pertama',
+  'Kejar Kurir',
+  'Kabur dari Razia',
 ];
+
+export const STORY_INTRO =
+  'Vice Bay, Leonida. Kamu baru sampai di kota ini dengan satu tas, ' +
+  'satu pistol, dan utang yang harus dibayar. Selesaikan tiga pekerjaan ' +
+  'untuk bosmu, Marisol, dan kota ini jadi milikmu.';

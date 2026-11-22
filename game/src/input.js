@@ -1,66 +1,98 @@
-// VICE BAY — keyboard and mouse, nothing more. InputPad only tracks the
-// hardware and forwards gestures through hooks; the game itself decides
-// what a key press means (see main.js).
+// Vice Bay — keyboard and mouse input, with per-frame edge detection.
 
-export class InputPad {
-  constructor(canvas, hooks) {
+export class Input {
+  constructor(canvas) {
     this.canvas = canvas;
-    this.hooks = hooks;
+    this.down = new Set();
     this.pressed = new Set();
-    // Mouse in canvas pixels; the game starts aiming at screen centre.
-    this.mouse = { x: 640, y: 450, down: false };
-    this.attach();
-  }
-
-  attach() {
-    const scrollKeys = new Set([
-      "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space",
-    ]);
-
-    window.addEventListener("keydown", (event) => {
-      this.pressed.add(event.code);
-      if (scrollKeys.has(event.code)) event.preventDefault();
-      if (event.code === "Enter") this.hooks.onConfirm?.();
-      if (event.code === "KeyP" || event.code === "Escape") this.hooks.onPause?.();
-      if (event.code === "KeyE") this.hooks.onEnterCar?.();
-      if (event.code === "KeyF") this.hooks.onShoot?.();
-    });
-
-    window.addEventListener("keyup", (event) => {
-      this.pressed.delete(event.code);
-    });
-
-    this.canvas.addEventListener("mousemove", (event) => {
-      const rect = this.canvas.getBoundingClientRect();
-      const scaleX = this.canvas.width / rect.width;
-      const scaleY = this.canvas.height / rect.height;
-      this.mouse.x = (event.clientX - rect.left) * scaleX;
-      this.mouse.y = (event.clientY - rect.top) * scaleY;
-    });
-
-    this.canvas.addEventListener("mousedown", (event) => {
-      if (event.button === 0) {
-        this.mouse.down = true;
-        this.hooks.onPrimaryDown?.();
+    this.mouseX = 0;
+    this.mouseY = 0;
+    this.mouseDown = false;
+    this.mouseClicked = false;
+    this.anyKey = false;
+    this._onKeyDown = (e) => {
+      if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'].includes(e.code)) {
+        e.preventDefault();
       }
-    });
-
-    window.addEventListener("mouseup", () => {
-      this.mouse.down = false;
-    });
-
-    this.canvas.addEventListener("click", () => {
-      this.hooks.onCanvasClick?.();
-    });
+      if (!e.repeat) {
+        this.down.add(e.code);
+        this.pressed.add(e.code);
+      }
+      this.anyKey = true;
+    };
+    this._onKeyUp = (e) => {
+      this.down.delete(e.code);
+    };
+    this._onMouseMove = (e) => {
+      const rect = this.canvas.getBoundingClientRect();
+      const sx = this.canvas.width / Math.max(1, rect.width);
+      const sy = this.canvas.height / Math.max(1, rect.height);
+      this.mouseX = (e.clientX - rect.left) * sx;
+      this.mouseY = (e.clientY - rect.top) * sy;
+    };
+    this._onMouseDown = (e) => {
+      if (e.button === 0) {
+        this.mouseDown = true;
+        this.mouseClicked = true;
+        this.pressed.add('MouseLeft');
+      }
+      this._onMouseMove(e);
+    };
+    this._onMouseUp = (e) => {
+      if (e.button === 0) this.mouseDown = false;
+    };
+    this._onBlur = () => {
+      this.down.clear();
+      this.mouseDown = false;
+    };
+    window.addEventListener('keydown', this._onKeyDown);
+    window.addEventListener('keyup', this._onKeyUp);
+    canvas.addEventListener('mousemove', this._onMouseMove);
+    canvas.addEventListener('mousedown', this._onMouseDown);
+    window.addEventListener('mouseup', this._onMouseUp);
+    window.addEventListener('blur', this._onBlur);
   }
 
-  // True while the physical key named by `code` is held down.
-  held(code) {
+  isDown(code) {
+    return this.down.has(code);
+  }
+
+  /** True only on the frame the key/button went down. */
+  wasPressed(code) {
     return this.pressed.has(code);
   }
 
-  // True when any code in the list is held down.
-  anyHeld(codes) {
-    return codes.some((code) => this.pressed.has(code));
+  anyOf(codes) {
+    return codes.some((c) => this.down.has(c));
+  }
+
+  anyPressed(codes) {
+    return codes.some((c) => this.pressed.has(c));
+  }
+
+  /** Movement axis from WASD/arrows: {x, y} each in -1..1. */
+  axis() {
+    let x = 0;
+    let y = 0;
+    if (this.down.has('KeyA') || this.down.has('ArrowLeft')) x -= 1;
+    if (this.down.has('KeyD') || this.down.has('ArrowRight')) x += 1;
+    if (this.down.has('KeyW') || this.down.has('ArrowUp')) y -= 1;
+    if (this.down.has('KeyS') || this.down.has('ArrowDown')) y += 1;
+    return { x, y };
+  }
+
+  /** Call at the end of every frame to clear edge triggers. */
+  endFrame() {
+    this.pressed.clear();
+    this.mouseClicked = false;
+  }
+
+  destroy() {
+    window.removeEventListener('keydown', this._onKeyDown);
+    window.removeEventListener('keyup', this._onKeyUp);
+    this.canvas.removeEventListener('mousemove', this._onMouseMove);
+    this.canvas.removeEventListener('mousedown', this._onMouseDown);
+    window.removeEventListener('mouseup', this._onMouseUp);
+    window.removeEventListener('blur', this._onBlur);
   }
 }

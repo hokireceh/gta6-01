@@ -1,128 +1,115 @@
-// VICE BAY — the mission chain: five jobs that must be finished in order,
-// plus the save/continue persistence. The mission table is built from the
-// definitions in config.js; each entry gains a target (where the yellow
-// marker points) and a completion test.
+// Vice Bay — the three-job story: objectives, progress and rewards.
 
-import { LANDMARKS, MISSION_DEFS, SAVE_KEY, TUNING } from "./config.js";
-import { distance } from "./math.js";
-import { flash } from "./combat.js";
+import { MISSION_NAMES, TUNING } from './config.js';
+import { dist } from './math.js';
+import { makePickup } from './entities.js';
 
-export { flash };
+function corner(world, avenueIdx, streetIdx) {
+  return { x: world.avenues[avenueIdx], y: world.streets[streetIdx] };
+}
 
-function nearestCarSpot(g) {
-  let best = null;
-  let bestDist = Infinity;
-  for (const car of g.cars) {
-    if (car.dead || car.police) continue;
-    const d = distance(g.player.x, g.player.y, car.x, car.y);
-    if (d < bestDist) { bestDist = d; best = car; }
+export class MissionManager {
+  constructor(world) {
+    this.world = world;
+    this.index = 0;
+    this.step = 0;
+    this.steps = [];
+    this.chaseHold = 0;
+    this.done = false;
   }
-  return best ? { x: best.x, y: best.y } : { x: 1125, y: 675 };
-}
 
-function goldCarSpot(g) {
-  const gold = g.cars.find((c) => c.gold && !c.dead);
-  return gold ? { x: gold.x, y: gold.y } : LANDMARKS.penthouse;
-}
-
-function ridingGold(g) {
-  return !!(g.player.inCar && g.player.inCar.gold);
-}
-
-// Round 5 note: the entrypoint now builds dossier.json with the vendored buildDossier and copies screenshots/ into the output.
-export const MISSIONS = MISSION_DEFS.map((def, index) => {
-  const checks = [
-    (g) => !!g.player.inCar,
-    (g) => !!g.player.inCar && distance(g.player.x, g.player.y, LANDMARKS.delivery.x, LANDMARKS.delivery.y) < LANDMARKS.delivery.r,
-    () => false,
-    () => false,
-    (g) => ridingGold(g) && distance(g.player.x, g.player.y, LANDMARKS.penthouse.x, LANDMARKS.penthouse.y) < LANDMARKS.penthouse.r,
-  ];
-  return {
-    id: index,
-    title: def.title,
-    text: def.text,
-    reward: def.reward,
-    target: (g) => {
-      if (index === 0) return nearestCarSpot(g);
-      if (index === 1) return LANDMARKS.delivery;
-      if (index === 2) return LANDMARKS.shop;
-      if (index === 3) return { x: g.player.x, y: g.player.y };
-      return goldCarSpot(g);
-    },
-    done: checks[index],
-  };
-});
-
-export function finishMission(g) {
-  const mission = MISSIONS[g.mission];
-  if (!mission) return;
-  g.money += mission.reward;
-  flash(g, mission.title + " SELESAI! +$" + mission.reward);
-  g.mission++;
-  g.missionProgress = 0;
-  g.missionTimer = 0;
-  if (g.mission === 3) {
-    g.wanted = 3;
-    g.missionTimer = TUNING.getawaySeconds;
+  get name() {
+    return MISSION_NAMES[this.index] || 'Bebas';
   }
-  saveGame(g);
-  if (g.mission >= MISSIONS.length) {
-    g.screen = "win";
-  }
-}
 
-export function stepMissions(g, dt) {
-  const mission = MISSIONS[g.mission];
-  if (!mission || g.screen !== "playing") return;
-  if (g.mission === 2) {
-    const inside = g.player.onFoot &&
-      distance(g.player.x, g.player.y, LANDMARKS.shop.x, LANDMARKS.shop.y) < LANDMARKS.shop.r;
-    if (inside && g.missionProgress < 1) {
-      g.missionProgress += dt / TUNING.robberySeconds;
-      if (g.missionProgress >= 1) g.wanted = Math.max(g.wanted, 2);
+  /** Build the step list for mission `index` inside `game`. */
+  loadMission(game, index) {
+    this.index = index;
+    this.step = 0;
+    this.chaseHold = 0;
+    this.done = false;
+    const w = this.world;
+    const depot = { x: w.depot.x, y: w.depot.y };
+    if (index === 0) {
+      this.steps = [
+        { type: 'goto', label: 'Ambil paket 1/3 di persimpangan barat', pos: corner(w, 2, 1), radius: 70 },
+        { type: 'goto', label: 'Ambil paket 2/3 di persimpangan tengah', pos: corner(w, 5, 4), radius: 70 },
+        { type: 'goto', label: 'Ambil paket 3/3 di persimpangan selatan', pos: corner(w, 1, 5), radius: 70 },
+        { type: 'goto', label: 'Antar semua paket ke depot Marisol', pos: depot, radius: 80 },
+      ];
+    } else if (index === 1) {
+      const courier = game.spawnCourier();
+      this.steps = [
+        { type: 'chase', label: 'Kejar kurir itu — tempel mobilnya 3 detik!', pos: { x: courier.x, y: courier.y }, radius: 110 },
+        { type: 'goto', label: 'Ambil tas kurir yang jatuh', pos: { x: courier.x, y: courier.y }, radius: 70 },
+        { type: 'goto', label: 'Bawa tasnya ke depot Marisol', pos: depot, radius: 80 },
+      ];
+    } else if (index === 2) {
+      game.setWanted(3, 'Razia besar-besaran! Kabur!');
+      this.steps = [
+        { type: 'goto', label: 'Kabur ke tempat persembunyian di timur laut!', pos: { x: w.hideout.x, y: w.hideout.y }, radius: 90 },
+      ];
+    } else {
+      this.steps = [];
+      this.done = true;
     }
-    if (g.missionProgress >= 1 && g.wanted === 0) finishMission(g);
-    return;
   }
-  if (g.mission === 3) {
-    if (g.wanted >= 2) g.missionTimer -= dt;
-    if (g.missionTimer <= 0) finishMission(g);
-    return;
-  }
-  if (mission.done(g)) finishMission(g);
-}
 
-export function saveGame(g) {
-  try {
-    localStorage.setItem(SAVE_KEY, JSON.stringify({
-      money: g.money,
-      mission: Math.min(g.mission, MISSIONS.length - 1),
-      px: Math.round(g.player.x),
-      py: Math.round(g.player.y),
-    }));
-  } catch (error) {
-    // Storage unavailable (private mode) — non-fatal.
+  current() {
+    if (this.done || this.index > 2) return null;
+    return this.steps[this.step] || null;
   }
-}
 
-export function loadGame() {
-  try {
-    const raw = localStorage.getItem(SAVE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch (error) {
+  objectiveLabel() {
+    const s = this.current();
+    if (!s) return this.done ? 'Semua pekerjaan selesai.' : 'Jelajahi Vice Bay sesukamu.';
+    return `Misi ${this.index + 1}/3 — ${this.name}: ${s.label}`;
+  }
+
+  /**
+   * Advance the mission. Returns 'done' when the mission finished,
+   * 'failed' when the chase target escaped too far, else null.
+   */
+  update(game, dt) {
+    const s = this.current();
+    if (!s) return null;
+    const p = game.playerPos();
+    if (s.type === 'goto') {
+      if (dist(p.x, p.y, s.pos.x, s.pos.y) < s.radius) {
+        this.step++;
+        game.onObjectiveReached(s);
+        if (this.step >= this.steps.length) return 'done';
+      }
+      return null;
+    }
+    if (s.type === 'chase') {
+      const c = game.courier;
+      if (!c) return null;
+      s.pos.x = c.x;
+      s.pos.y = c.y;
+      const d = dist(p.x, p.y, c.x, c.y);
+      if (d < s.radius) {
+        this.chaseHold += dt;
+        if (this.chaseHold >= 3) {
+          // The courier gives up: the car stops and the bag drops.
+          c.driver = 'parked';
+          c.speed = 0;
+          c.cruise = 0;
+          game.pickups.push(makePickup(c.x + 30, c.y, 'cash'));
+          game.flashMessage('Kurir menyerah! Ambil tasnya.', 2.5);
+          this.step++;
+        }
+      } else {
+        this.chaseHold = Math.max(0, this.chaseHold - dt * 0.5);
+        if (d > 1600) return 'failed';
+      }
+      return null;
+    }
     return null;
   }
-}
 
-export function applySave(g, save) {
-  if (!save) return;
-  g.money = save.money || 0;
-  g.mission = save.mission || 0;
-  g.player.x = save.px || 675;
-  g.player.y = save.py || 675;
-  if (g.mission === 3) {
-    g.wanted = 3;
-    g.missionTimer = TUNING.getawaySeconds;
+  /** Cash reward for the mission that just finished. */
+  reward() {
+    return TUNING.missionReward[this.index] || 0;
   }
 }
