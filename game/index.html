@@ -1,33 +1,17 @@
-<!DOCTYPE html>
-<html lang="id">
+<!doctype html>
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Vice Bay — Open-World Crime Game</title>
+<title>Vice Bay — an open-world crime game</title>
 <style>
-  html, body {
-    margin: 0;
-    padding: 0;
-    height: 100%;
-    background: #0b0e12;
-    overflow: hidden;
-  }
-  body {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  canvas {
-    width: min(100vw, calc(100vh * 16 / 9));
-    height: min(100vh, calc(100vw * 9 / 16));
-    background: #5d9b4a;
-    image-rendering: auto;
-    cursor: crosshair;
-  }
+  html, body { margin: 0; padding: 0; height: 100%; background: #0b1020; overflow: hidden; }
+  #stage { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; }
+  canvas { display: block; background: #10182e; box-shadow: 0 0 60px rgba(0,0,0,.6); }
 </style>
 </head>
 <body>
-<canvas id="game" width="1280" height="720"></canvas>
-<script type="module" src="./src/main.js"></script>
+<div id="stage"><canvas id="game" width="1280" height="720"></canvas></div>
+<script type="module" src="./src/boot.js"></script>
 </body>
 </html>

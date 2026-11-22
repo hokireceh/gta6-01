@@ -1,16 +1,15 @@
-// Vice Bay — a tiny static server for local play-testing.
-// Serves game/ at http://localhost:8080/ so the game can be opened in a
-// desktop browser exactly as a static host would serve it.
-// Usage: node scripts/serve.mjs   (then open http://localhost:8080/)
+// Serves game/ as static files for local play:
+//   node scripts/serve.mjs            (http://localhost:8080)
+//   PORT=9000 node scripts/serve.mjs
+// Also importable: startStaticServer(root, port) returns the server, so the
+// screenshot script can serve the same files on an ephemeral port.
 
 import { createServer } from 'node:http';
-import { existsSync, readFileSync } from 'node:fs';
-import { extname, join, resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { extname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const root = resolve(import.meta.dirname, '..', 'game');
-const port = Number(process.env.PORT || 8080);
-
-const TYPES = {
+const MIME = {
   '.html': 'text/html; charset=utf-8',
   '.js': 'text/javascript; charset=utf-8',
   '.mjs': 'text/javascript; charset=utf-8',
@@ -19,21 +18,40 @@ const TYPES = {
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
+  '.svg': 'image/svg+xml',
 };
 
-const server = createServer((req, res) => {
-  const url = decodeURIComponent(req.url.split('?')[0]);
-  const rel = url === '/' ? 'index.html' : url.replace(/^\/+/, '');
-  const file = join(root, rel);
-  if (!file.startsWith(root) || !existsSync(file)) {
-    res.writeHead(404, { 'content-type': 'text/plain' });
-    res.end('not found');
-    return;
-  }
-  res.writeHead(200, { 'content-type': TYPES[extname(file)] || 'application/octet-stream' });
-  res.end(readFileSync(file));
-});
+/** Starts a static server for dir; resolves with {server, port} once listening. */
+export function startStaticServer(root, port = 0) {
+  const server = createServer(async (req, res) => {
+    try {
+      const url = new URL(req.url, 'http://localhost');
+      let path = decodeURIComponent(url.pathname);
+      if (path === '/') path = '/index.html';
+      if (path.includes('..')) {
+        res.writeHead(400);
+        res.end('bad path');
+        return;
+      }
+      const data = await readFile(join(root, path));
+      res.writeHead(200, { 'content-type': MIME[extname(path)] || 'application/octet-stream' });
+      res.end(data);
+    } catch (e) {
+      res.writeHead(404);
+      res.end('not found');
+    }
+  });
+  return new Promise((resolve) => {
+    server.listen(port, '127.0.0.1', () => {
+      resolve({ server, port: server.address().port });
+    });
+  });
+}
 
-server.listen(port, () => {
-  console.log(`vice-bay: serving ${root} at http://localhost:${port}/`);
-});
+const isMain = process.argv[1] && process.argv[1].endsWith('serve.mjs');
+if (isMain) {
+  const root = join(fileURLToPath(new URL('.', import.meta.url)), '..', 'game');
+  const port = parseInt(process.env.PORT || '8080', 10);
+  const { port: actual } = await startStaticServer(root, port);
+  console.log(`vice-bay: serving ${root} at http://localhost:${actual}`);
+}

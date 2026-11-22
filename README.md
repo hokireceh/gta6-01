@@ -4,77 +4,89 @@
 
 # Vice Bay
 
-An original 2D top-down open-world crime game set in the fictional city of Vice Bay, Leonida — built for the make.fun **gta6-01** bounty. You arrive in town with one bag, one pistol, and a debt. Work three jobs for your boss Marisol — deliver packages, chase down a courier, then escape a city-wide raid — and the city is yours.
-
-No Rockstar content: every name, character, street and story beat here is invented for this game.
+An original open-world crime game in the spirit of GTA 6, built for the
+[make.fun gta6-01 bounty](https://make.fun/bounty/gta6-01). You play Dario
+Voss, a wheelman new to Vice Bay — a sun-soaked coastal city of five
+districts (Old Town, Downtown, Neon Strip, Bayside, Harbor) with a beach,
+a marina and a harbor basin. Everything here is original: the city, the
+characters, the story, the art and the sounds. Nothing is taken from
+Rockstar Games or GTA.
 
 ## Play it
 
-Serve `game/` with any static server and open `game/index.html` in desktop Chrome:
-
 ```sh
-node scripts/serve.mjs   # http://localhost:8080/
+node scripts/serve.mjs   # http://localhost:8080
 ```
 
-Or build the submission bundle (copies `game/` + `screenshots/` and writes `dossier.json`):
+Open `game/index.html` in desktop Chrome. No build step, no network — the
+game is static files under `game/`.
 
-```sh
-npm run build            # writes out/
-npm test                 # smoke test: builds twice, checks identical bytes
-```
+## What is in the game
+
+- **An open world to explore** — drive or walk a 3200×2400 city with
+  traffic, pedestrians, parked cars to steal, a beach and a harbor.
+- **Four story jobs** — steal wheels for Sable the fixer, run a package
+  from the marina, lose a three-star heat, then pull the Bay Job and
+  vanish down the docks. Cash pays out per job; pickups (medkit, ammo,
+  cash) are scattered around the city.
+- **Wanted level + police** — heat rises when you shoot, kill or steal in
+  view; foot cops chase and punch, cruisers chase and ram with sirens.
+  Break line of sight and the stars cool off.
+- **Combat** — mouse aim, click to shoot, R to reload, drive-bys from the
+  car window.
+- **A living sky** — a day/night clock and weather that drifts between
+  sunny, rain and storm; rain makes the roads slick and storms flash
+  lightning.
+- **HUD + minimap** — cash, health, ammo, wanted stars, clock and
+  weather, the mission objective, a live minimap and an edge arrow to
+  the next marker.
+- **Screens** — title, pause, busted, wasted, win. Progress (cash and
+  current job) saves to localStorage; press C on the title to continue.
+- **Screenshots** — `npm run shots` re-takes the four shots in
+  `shots.json` with headless Chromium (cover, title, busted, win).
 
 ## Controls
 
-| Input | Action |
+| Key | Action |
 | --- | --- |
-| WASD / Arrow keys | Walk and drive |
-| Shift | Sprint on foot |
-| E | Enter / exit a car (stealing a driven car raises your wanted level) |
-| Mouse click | Shoot the pistol (on foot) |
-| R | Reload |
-| P / Esc | Pause |
-| M | Mute sound |
-
-## The game
-
-- **A living city** — a seeded street grid with avenues, intersections, a park, a beach and the bay; traffic cars cruise the roads and pedestrians stroll the sidewalks (and flee when you drive at them).
-- **Cars to steal and drive** — parked cars are free; taking a car with a driver inside earns you a wanted star. Arcade handling with acceleration, braking, reversing and steering.
-- **Wanted level & police** — 0–5 stars. Crimes (theft, hitting pedestrians, shooting cops) raise it; VCPD cars chase and ram you, foot cops chase, shoot, and try to bust you. Lose the cops' line of sight and the heat cools down.
-- **Missions & story** — three jobs with a HUD objective, a pulsing beacon, an edge-of-screen arrow and a minimap marker: (1) *Pesanan Pertama* — collect three packages and deliver them to the depot; (2) *Kejar Kurir* — run a courier down and take his bag; (3) *Kabur dari Razia* — escape a three-star raid to the hideout.
-- **Combat** — pistol with mouse aim, reload, cop return fire, health and ammo pickups around town.
-- **Progression & save** — cash rewards per job, a win screen with run stats, and progress (cash + mission) saved in `localStorage` so you can continue later.
-- **Feel & polish** — camera follow with screen shake, dust and spark particles, muzzle flashes, a day-lit palette, synthesized engine/siren/gunshot audio (WebAudio, no files), and a full HUD: cash, health, ammo, wanted stars, objective banner, speedometer and minimap.
+| WASD / arrows | Walk / drive |
+| Shift | Sprint |
+| E | Enter / exit car, pick up / grab (at a marker) |
+| Mouse + click | Aim / shoot |
+| R | Reload (or respawn when busted) |
+| M | Mute |
+| Esc | Pause |
 
 ## Structure
 
-The game is plain static files under `game/` — no build step, no network requests, no vendored libraries:
+- `main.ts` — the entry program: copies `game/` + `screenshots/` to the
+  output dir and writes `dossier.json` with `vendor/makefun-game.ts`.
+- `game/src/boot.js` — the game: loop, input, camera, coordination.
+- `game/src/baycity.js` — the city: layout, buildings, drawing.
+- `game/src/clock.js` — day/night cycle and weather.
+- `game/src/drive.js` — vehicle physics and traffic.
+- `game/src/walker.js` — on-foot movement.
+- `game/src/cops.js` — wanted level and police AI.
+- `game/src/crowd.js` — pedestrians and parked cars.
+- `game/src/story.js` — the four-job story.
+- `game/src/fight.js` — shooting, health, ammo, pickups.
+- `game/src/interface.js` — HUD, minimap, screens.
+- `game/src/sound.js` — synthesized WebAudio sounds.
+- `game/src/presets.js` — `?shot=` scenes for the screenshots.
+- `game/src/save.js` — localStorage saves.
+- `game/src/tools.js` — seeded RNG and small math helpers.
+- `scripts/smoke.mjs` — `npm test`: two builds, byte-identical outputs.
+- `scripts/shots.mjs` — `npm run shots`: the four screenshots.
+- `scripts/serve.mjs` — `npm run serve`: a static file server.
 
-| File | Job |
-| --- | --- |
-| `game/index.html` | The page: canvas + module entry |
-| `game/src/main.js` | Game state, loop, driving, crime, police, save |
-| `game/src/config.js` | Tuning, palette, key bindings |
-| `game/src/math.js` | Pure math helpers |
-| `game/src/random.js` | Seeded RNG (the city is deterministic) |
-| `game/src/input.js` | Keyboard + mouse, with edge detection |
-| `game/src/entities.js` | Entity factories and car kinematics |
-| `game/src/world.js` | City generation, roads, collisions |
-| `game/src/ai.js` | Traffic, pedestrians, police pursuit |
-| `game/src/combat.js` | Shooting, bullets, wanted consequences |
-| `game/src/missions.js` | The three-job story state machine |
-| `game/src/render.js` | City, cars, people, HUD, minimap, menus |
-| `game/src/shots.js` | Staged scenes (`?shot=menu|drive|chase|win`) for screenshots |
+## Tests
 
-`main.ts` at the repository root is the make.fun entrypoint: it copies `game/` and `screenshots/` to the output directory and writes `dossier.json` with `buildDossier` from `vendor/makefun-game.ts`. `scripts/smoke.mjs` verifies the build is deterministic; `scripts/serve.mjs` is the local static server.
-
-## Screenshots
-
-`01-menu.jpg` (title screen), `02-drive.jpg` (driving with HUD + minimap), `03-chase.jpg` (three-star police chase), `04-win.jpg` (win screen) — all real renders of this game in Chromium, captured with Playwright while driving the `?shot=` scenes. See `shots.json` for the scene list.
-
-## License
-
-MIT — see [LICENSE](LICENSE).
+```sh
+npm test          # two builds, byte-identical, 20 files, dossier < 1.5 MiB
+node --check game/src/boot.js   # and every other module
+```
 
 ---
 
-Built for [make.fun — GTA 6 bounty gta6-01](https://make.fun/bounty/gta6-01?ref=jjqnkn84)
+Built with [make.fun](https://make.fun/r/jjqnkn84) — build AI agents and
+enter them in competitions.
