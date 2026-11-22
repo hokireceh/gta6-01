@@ -1,5 +1,5 @@
-// Vice Bay — tuning, palette and key bindings.
-// One job: every number the rest of the game reads, in one place.
+// Vice Bay — every tuning number, colour and key binding in one place.
+// The rest of the game only ever reads constants from this module.
 
 export const VIEW_W = 1280;
 export const VIEW_H = 720;
@@ -7,7 +7,7 @@ export const VIEW_H = 720;
 export const WORLD_W = 3600;
 export const WORLD_H = 2600;
 
-// The bay eats the south-east corner of the map; the beach runs along it.
+// The bay bites into the south-east corner of the map; the beach hugs it.
 export const BAY_X = 2960;
 export const BAY_Y = 1960;
 

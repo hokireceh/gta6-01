@@ -1,4 +1,4 @@
-// Vice Bay — small pure math helpers. No state, no imports.
+// Vice Bay — tiny pure math helpers. No state, no imports.
 
 export const TAU = Math.PI * 2;
 

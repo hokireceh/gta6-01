@@ -28,8 +28,14 @@ if (!existsSync(shotsDir)) {
 }
 
 // Start from a clean output directory so two runs write identical bytes.
-rmSync(outDir, { recursive: true, force: true });
+// NOTE: never delete the output directory itself. On the grader it is a
+// root-owned mount and this build runs as uid 65534, so removing it fails
+// with EPERM and kills the run. Create it if missing, then clear only
+// the files this build owns inside it.
 mkdirSync(outDir, { recursive: true });
+rmSync(join(outDir, 'game'), { recursive: true, force: true });
+rmSync(join(outDir, 'screenshots'), { recursive: true, force: true });
+rmSync(join(outDir, 'dossier.json'), { force: true });
 
 // Copy the playable game and its screenshots, verbatim.
 cpSync(gameDir, join(outDir, 'game'), { recursive: true });
